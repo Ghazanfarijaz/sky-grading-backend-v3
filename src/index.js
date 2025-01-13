@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const sequelize = require("./config/database"); // Database connection
 const userRoutes = require("./routes/userRoutes"); // User routes
@@ -22,37 +23,47 @@ app.use(
 app.use("/api/users", userRoutes);
 app.use("/api/cards", cardRoutes);
 
+// Create Order (Stripe)
 app.post('/create-order', async (req, res) => {
   const { amount, currency } = req.body;
 
   try {
-    const order = await razorpayInstance.orders.create({
-      amount: amount * 100, // Convert to paisa
+    // Create a new Stripe PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount * 100, // Convert to the smallest currency unit (e.g., cents)
       currency,
-      receipt: `receipt_${Date.now()}`,
     });
-    res.json(order);
+
+    res.json({
+      clientSecret: paymentIntent.client_secret, // Send the client secret to the frontend
+    });
   } catch (error) {
-    res.status(500).send(error);
+    console.error("Error creating payment intent:", error);
+    res.status(500).send(error.message);
   }
 });
 
+// Verify Payment (Stripe)
+app.post('/verify-payment', async (req, res) => {
+  const { paymentIntentId, paymentMethodId } = req.body;
 
-app.post('/verify-payment', (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+  try {
+    // Confirm the payment with the provided payment method ID
+    const paymentIntent = await stripe.paymentIntents.confirm(
+      paymentIntentId,
+      { payment_method: paymentMethodId }
+    );
 
-  const crypto = require('crypto');
-  const hmac = crypto.createHmac('sha256', 'YOUR_RAZORPAY_SECRET');
-  hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-  const generatedSignature = hmac.digest('hex');
-
-  if (generatedSignature === razorpay_signature) {
-    res.send({ status: 'success' });
-  } else {
-    res.status(400).send({ status: 'failure' });
+    if (paymentIntent.status === 'succeeded') {
+      res.send({ status: 'success' });
+    } else {
+      res.status(400).send({ status: 'failure' });
+    }
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    res.status(500).send(error.message);
   }
 });
-
 
 // Database Sync and Server Start
 (async function startServer() {
