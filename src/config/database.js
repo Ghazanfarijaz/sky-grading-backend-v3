@@ -40,8 +40,15 @@ const sequelize = new Sequelize(
     dialect: 'postgres',
     port: process.env.DB_PORT || 5432, // Use default Postgres port if not set
     logging: false, // Disable logging; set true for debugging SQL queries
+    // dialectOptions: {
+    //   useUTC: true, // Ensure timezone compatibility if needed
+    // },
     dialectOptions: {
       useUTC: true, // Ensure timezone compatibility if needed
+      ssl: {
+        require: true, // Enable SSL connection
+        rejectUnauthorized: false, // Set to false if using self-signed certificates
+      },
     },
   }
 );

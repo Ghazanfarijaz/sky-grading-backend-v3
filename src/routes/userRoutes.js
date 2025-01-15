@@ -1,5 +1,5 @@
 const express = require("express");
-const { createUser, getAllUsers, login } = require("../controllers/userController");
+const { createUser, getAllUsers, login, updateUser } = require("../controllers/userController");
 const router = express.Router();
 
 // Route to register a new user
@@ -10,5 +10,8 @@ router.get("/users", getAllUsers); // Get all users
 
 // Route to login
 router.post("/login", login); // Handle login
+
+// Route to update a user
+router.put("/users/:id", updateUser); // Update user by ID
 
 module.exports = router;

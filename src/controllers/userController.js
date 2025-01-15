@@ -91,3 +91,35 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Error logging in.", error: error.message });
   }
 };
+
+
+// Update a user by ID
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params; // Get the user ID from the URL
+    const { firstName, lastName, email, phone, role, status, country } = req.body;
+
+    // Find the user by ID
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Update the user's details
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.role = role || user.role;
+    user.status = status || user.status;
+    user.country = country || user.country;
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: "User updated successfully.", user });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Error updating user.", error: error.message });
+  }
+};
